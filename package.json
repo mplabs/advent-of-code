@@ -1,0 +1,16 @@
+{
+  "name": "advent-of-code",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "create": "bun run make-new-day.ts",
+    "solve": "bun run index.ts",
+    "solve:watch": "bun run --watch index.ts"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
