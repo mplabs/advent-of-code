@@ -1,12 +1,35 @@
 import AbstractPuzzle from '@utils/AbstractPuzzle'
 
-type Coordinate = [x: number, y: number]
 type Instruction = [direction: string, distance: number]
 
-export const manhattenDistance = ([x1, y1]: Coordinate, [x2, y2]: Coordinate): number =>
-  Math.abs(x1 - x2) + Math.abs(y1 - y2)
+const DX: Record<string, number> = { L: -1, R: 1, U: 0, D: 0 }
+const DY: Record<string, number> = { L: 0, R: 0, U: 1, D: -1 }
+
+function getPoints(instructions: Instruction[]): Map<string, number> {
+  let x = 0,
+    y = 0,
+    length = 0
+  const points = new Map<string, number>()
+  for (const [direction, distance] of instructions) {
+    for (let i = 0; i < distance; i++) {
+      x += DX[direction]
+      y += DY[direction]
+      length++
+      const serializedCoordinates = JSON.stringify([x, y])
+      if (!points.has(serializedCoordinates)) {
+        points.set(serializedCoordinates, length)
+      }
+    }
+  }
+
+  return points
+}
 
 export default class Day3 extends AbstractPuzzle {
+  pointsA: Map<string, number>
+  pointsB: Map<string, number>
+  both: Set<string>
+
   get input() {
     return (
       this.rawInput
@@ -24,73 +47,33 @@ export default class Day3 extends AbstractPuzzle {
     )
   }
 
+  constructor(input: string) {
+    super(input)
+
+    const [wireA, wireB] = this.input
+
+    this.pointsA = getPoints(wireA)
+    this.pointsB = getPoints(wireB)
+
+    const setA = new Set(this.pointsA.keys()) as Set<string>
+    const setB = new Set(this.pointsB.keys()) as Set<string>
+
+    // Typescript does not like Set.prototype.intersection, but bun does.
+    // @ts-ignore
+    this.both = setA.intersection(setB)
+  }
+
   public solveFirst(): unknown {
-    const [wire1, wire2] = this.input
-
-    let wire = new Set<string>(),
-      intersections = new Set<string>(),
-      lastCoordinate = [1, 1] // central port
-    wire1.forEach(([direction, distance]) => {
-      for (let i = 0; i < distance; i++) {
-        switch (direction) {
-          case 'U':
-            lastCoordinate = [lastCoordinate[0], ++lastCoordinate[1]]
-            break
-          case 'R':
-            lastCoordinate = [++lastCoordinate[0], lastCoordinate[1]]
-            break
-          case 'D':
-            lastCoordinate = [lastCoordinate[0], --lastCoordinate[1]]
-            break
-          case 'L':
-            lastCoordinate = [--lastCoordinate[0], lastCoordinate[1]]
-            break
-          default:
-            throw new Error(`Unknown direction'${direction}'`)
-        }
-        wire.add(JSON.stringify(lastCoordinate))
-      }
-    })
-
-    // reset to central port
-    lastCoordinate = [1, 1]
-    wire2.forEach(([direction, distance]) => {
-      for (let i = 0; i < distance; i++) {
-        switch (direction) {
-          case 'U':
-            lastCoordinate = [lastCoordinate[0], ++lastCoordinate[1]]
-            break
-          case 'R':
-            lastCoordinate = [++lastCoordinate[0], lastCoordinate[1]]
-            break
-          case 'D':
-            lastCoordinate = [lastCoordinate[0], --lastCoordinate[1]]
-            break
-          case 'L':
-            lastCoordinate = [--lastCoordinate[0], lastCoordinate[1]]
-            break
-          default:
-            throw new Error(`Unknown direction'${direction}'`)
-        }
-        if (wire.has(JSON.stringify(lastCoordinate))) {
-          intersections.add(JSON.stringify(lastCoordinate))
-        }
-      }
-    })
-
-    let minDistance = Infinity
-    intersections.forEach((intersection) => {
-      const coordinate = JSON.parse(intersection)
-      const distance = manhattenDistance([1, 1], coordinate)
-      if (distance < minDistance) {
-        minDistance = distance
-      }
-    })
-
-    return minDistance
+    return Math.min(
+      ...Array.from(this.both)
+        .map((key) => JSON.parse(key))
+        .map(([x, y]) => Math.abs(x) + Math.abs(y))
+    )
   }
 
   public solveSecond(): unknown {
-    return null
+    return Math.min(
+      ...Array.from(this.both).map((point) => this.pointsA.get(point)! + this.pointsB.get(point)!)
+    )
   }
 }

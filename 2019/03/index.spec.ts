@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 
-import Day3 from '.'
+import Day3 from './index'
 
 const sampleInputs = [
   {
