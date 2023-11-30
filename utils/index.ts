@@ -1,3 +1,5 @@
 export * from './AbstractPuzzle'
 export * from './array'
+export * from './graph'
+export * from './numbers'
 export * from './utils'

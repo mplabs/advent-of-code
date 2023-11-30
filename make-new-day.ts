@@ -1,12 +1,13 @@
 import { mkdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 
-const newDayNameRegexp = /\d{4}\/[0][0-9]|[1][0-2]/
+const newDayNameRegexp = /\d{4}\/([01][0-9]|[2][0-5])/
 
 const [dayToSolve] = process.argv.slice(2)
 
 if (!newDayNameRegexp.test(dayToSolve)) {
   console.error(`Usage: bun run create <year>/<day>\n e.g. "bun run create 2023/03"`)
+  process.exit(0)
 }
 
 if (existsSync(`./${dayToSolve}`)) {
