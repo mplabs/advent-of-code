@@ -13,7 +13,7 @@ export const distinct = <T>(value: T, index: number, self: T[]) =>
   self.indexOf(value) === index
 
 export function intersection<T>(arr: T[], ...args: T[][]): T[] {
-  return arr.filter(item => args.every(arr => arr.includes(item)))
+  return arr.filter(item => args.every(arr => arr && arr.includes(item)))
 }
 
 export function invertMatrix<T>(matrix: any[][]): T[][] {
