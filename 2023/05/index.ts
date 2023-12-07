@@ -40,10 +40,6 @@ export default class Day5 extends AbstractPuzzle {
         })
     }
 
-    const test = 'hello'
-
-    console.log(test)
-
     return this._seedToSoil
   }
 
