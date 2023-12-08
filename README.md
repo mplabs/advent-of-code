@@ -1,6 +1,6 @@
 # Advent Of Code 🎄
 
-These are my attempts at the Adcent of Code [Advent of Code](https://adventofcode.com).
+These are my attempts at the Advent of Code [Advent of Code](https://adventofcode.com).
 
 ## Project Structure
 

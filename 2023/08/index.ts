@@ -1,8 +1,10 @@
 import AbstractPuzzle from '@utils/AbstractPuzzle'
 
+type Network = Map<string, { L: string; R: string }>
+
 export default class Day8 extends AbstractPuzzle {
   instructions: ('L' | 'R')[]
-  network: Map<string, { L: string; R: string }>
+  network: Network
 
   constructor(input: string) {
     super(input)
@@ -18,20 +20,20 @@ export default class Day8 extends AbstractPuzzle {
   public solveFirst(): unknown {
     let currentNode = 'AAA',
       i = 0
-    // while (currentNode !== 'ZZZ') {
-    //   const instruction = this.instructions[i % this.instructions.length]
-    //   currentNode = this.network.get(currentNode)![instruction]
+    while (currentNode !== 'ZZZ') {
+      const instruction = this.instructions[i % this.instructions.length]
+      currentNode = this.network.get(currentNode)![instruction]
 
-    //   i++
-    // }
+      i++
+    }
 
     return i
   }
 
   public solveSecond(): unknown {
-    // Figure out the lengths of the paths the ghosts will take to reach
-    // the node ending with 'Z' and multiply them together
-    
+    // The trivial solution does not work here, because the paths
+    // cycle at some point. Maybe we could remember what paths
+    // we already took and skip them?
 
     return 0
   }
