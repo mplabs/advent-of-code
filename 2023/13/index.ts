@@ -36,10 +36,6 @@ export default class Day13 extends AbstractPuzzle {
     }
   }
 
-  public transpose<T>(grid: Grid<T>): Grid<T> {
-    return grid[0].map((_, i) => grid.map((row) => row[i]))
-  }
-
   public solveFirst(): unknown {
     this.input.forEach((grid, idx) => {
       const result = this.search(grid)
