@@ -1,7 +1,8 @@
 import AbstractPuzzle from '@utils/AbstractPuzzle'
 import { range } from '@utils/array'
+import { hex2dec } from '@utils/numbers'
 
-type Instruction = [direction: [dr: number, dc: number], distance: number, color: string]
+type Instruction = [direction: [dr: number, dc: number], distance: number]
 
 const mapDirection = (direction: string): [dx: number, dy: number] => {
   switch (direction) {
@@ -30,24 +31,19 @@ function shoelace(points: [number, number][]): number {
 }
 
 export default class Day18 extends AbstractPuzzle {
-  _input?: Instruction[]
-  get input(): Instruction[] {
+  _input?: string[]
+  get input(): string[] {
     if (!this._input) {
-      this._input = this.rawInput.split('\n').map((line) => {
-        const [, direction, distance, color] = Array.from(
-          line.match(/([LRUD]) (\d+) \((#[0-9a-f]{6})\)/)!
-        )
-        return [mapDirection(direction), parseInt(distance), color] as Instruction
-      })
+      this._input = this.rawInput.split('\n')
     }
 
     return this._input
   }
 
-  public solveFirst(): unknown {
+  public solve(instructions: Instruction[]): number {
     const points: [row: number, col: number][] = [[0, 0]]
     let boundary = 0
-    this.input.forEach(([[dr, dc], distance]) => {
+    instructions.forEach(([[dr, dc], distance]) => {
       boundary += distance
       const [r, c] = points[points.length - 1]
       points.push([r + dr * distance, c + dc * distance])
@@ -57,10 +53,32 @@ export default class Day18 extends AbstractPuzzle {
 
     // Pick's theorem
     const interiour = area - boundary / 2 + 1
+
     return interiour + boundary
   }
 
+  public solveFirst(): unknown {
+    const instructions = this.input.map((line) => {
+      const [, direction, distance] = Array.from(line.match(/([LRUD]) (\d+)/)!)
+      return [mapDirection(direction), parseInt(distance)] as Instruction
+    })
+
+    return this.solve(instructions)
+  }
+
   public solveSecond(): unknown {
-    return null
+    const instructions = this.input.map((line) => {
+      const [, distanceHex, directionHex] = line.match(/\(#([0-9a-f]{5})([0-9a-f])\)/)!
+      const distance = hex2dec(distanceHex)
+      const direction = [
+        [1, 0], // 0: R
+        [0, 1], // 1: D
+        [-1, 0], // 2: L
+        [0, -1], // 3: U
+      ][hex2dec(directionHex)]
+      return [direction, distance] as Instruction
+    })
+
+    return this.solve(instructions)
   }
 }
