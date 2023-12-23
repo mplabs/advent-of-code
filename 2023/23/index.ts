@@ -1,5 +1,5 @@
-import { PriorityQueue } from '@datastructures-js/priority-queue'
 import AbstractPuzzle from '@utils/AbstractPuzzle'
+import { eq } from '@utils/lang'
 
 export default class Day23 extends AbstractPuzzle {
   _input?: string[][]
@@ -12,74 +12,201 @@ export default class Day23 extends AbstractPuzzle {
   }
 
   public solveFirst(): unknown {
-    const startingPosition = [0, 1]
-    const endingPosition = [this.input.length - 1, this.input[0].length - 2]
+    // Get the starting and ending positions
+    const start = [0, 1]
+    const end = [this.input.length - 1, this.input[0].length - 2]
 
-    // Make a max priority queue
-    const pqueue = PriorityQueue.fromArray([[...startingPosition, -1, 0]], (a, b) => a[3] + b[3])
+    // All the possible positions
+    const points: number[][] = [start, end]
 
-    // Remember positions we have seen, so we don't go back
-    const seen = new Set<string>()
-
-    let r: number, c: number, d: number, s: number
-    while (!pqueue.isEmpty()) {
-      [r, c, d, s] = pqueue.pop()
-
-      if (r === endingPosition[0] && c === endingPosition[1]) {
-        continue
-      }
-
-      // Skip if we have seen this position before
-      const key = `${r},${c}`
-      if (seen.has(key)) {
-        continue
-      }
-
-      seen.add(key)
-
-      const neighbors: [r: number, c: number][] = [
-        [r - 1, c], // North
-        [r + 1, c], // South
-        [r, c - 1], // West
-        [r, c + 1], // East
-      ]
-
-      for (let dir = 0; dir < neighbors.length; dir++) {
-        // Check if we can go in this direction
-        if (!(d === -1 || dir === d)) {
+    for (let r = 0; r < this.input.length; r++) {
+      for (let c = 0; c < this.input[r].length; c++) {
+        // Skip if it's a forest
+        if (this.input[r][c] === '#') {
           continue
         }
 
-        // Get the next position
-        const [nr, nc] = neighbors[dir]
-
-        // Check bounds
-        if (nr < 0 || nr >= this.input.length || nc < 0 || nc >= this.input[0].length) {
-          continue
-        }
-
-        // If the next position is path, add it to the queue.
-        if (this.input[nr][nc] === '.') {
-          pqueue.enqueue([nr, nc, -1, s + 1])
-        }
-
-        // If the next position is a slope, check if we can go down.
-        if (
-          (this.input[nr][nc] === '>' && dir === 3) ||
-          (this.input[nr][nc] === '<' && dir === 2) ||
-          (this.input[nr][nc] === 'v' && dir === 1) ||
-          (this.input[nr][nc] === '^' && dir === 0)
-        ) {
-          pqueue.enqueue([nr, nc, dir, s + 1])
+        let neighbors = 0
+        for (const [nr, nc] of [
+          [r - 1, c],
+          [r + 1, c],
+          [r, c - 1],
+          [r, c + 1],
+        ]) {
+          // Check for bounds and if it's a forest
+          if (
+            0 <= nr &&
+            nr < this.input.length &&
+            0 <= nc &&
+            nc < this.input[r].length &&
+            this.input[nr][nc] !== '#'
+          ) {
+            neighbors++
+          }
+          if (neighbors >= 3) {
+            points.push([r, c])
+          }
         }
       }
     }
 
-    // No solution found
-    return s
+    const graph: Record<string, Record<string, number>> = {}
+    for (let pt of points) {
+      graph[JSON.stringify(pt)] = {}
+    }
+
+    // prettier-ignore
+    const dirs: Record<string, number[][]> = {
+      '^': [[-1, 0]],
+      'v': [[1, 0]],
+      '<': [[0, -1]],
+      '>': [[0, 1]],
+      '.': [[-1, 0], [1, 0], [0, -1], [0, 1]],
+    }
+
+    for (const [sr, sc] of points) {
+      const stack: [n: number, r: number, c: number][] = [[0, sr, sc]]
+      const seen = new Set([JSON.stringify([sr, sc])])
+
+      while (stack.length > 0) {
+        const [n, r, c] = stack.pop()!
+
+        if (n !== 0 && points.some((pt) => pt[0] === r && pt[1] === c)) {
+          graph[JSON.stringify([sr, sc])][JSON.stringify([r, c])] = n
+          continue
+        }
+
+        for (const [dr, dc] of dirs[this.input[r][c]]) {
+          const nr = r + dr
+          const nc = c + dc
+          // prettier-ignore
+          if (
+            nr >= 0 && nr < this.input.length && nc >= 0 && nc < this.input[0].length &&
+            this.input[nr][nc] !== "#" &&
+            !seen.has(JSON.stringify([nr, nc]))
+          ) {
+            stack.push([n + 1, nr, nc])
+            seen.add(JSON.stringify([nr, nc]))
+          }
+        }
+      }
+    }
+
+    const seen = new Set<string>()
+    const dfs = (pt: number[]): number => {
+      if (eq(pt, end)) {
+        return 0
+      }
+
+      let m = -Infinity
+
+      seen.add(JSON.stringify(pt))
+      const nodes = graph[JSON.stringify(pt)]
+      for (const nx in graph[JSON.stringify(pt)]) {
+        if (!seen.has(nx)) {
+          m = Math.max(m, dfs(JSON.parse(nx)) + graph[JSON.stringify(pt)][nx])
+        }
+      }
+      seen.delete(JSON.stringify(pt))
+
+      return m
+    }
+
+    return dfs(start)
   }
 
   public solveSecond(): unknown {
-    return null
+     // Start and end are still in the same place
+    const start = [0, 1]
+    const end = [this.input.length - 1, this.input[0].length - 2]
+
+    // All the possible positions
+    const points: number[][] = [start, end]
+
+    for (let r = 0; r < this.input.length; r++) {
+      for (let c = 0; c < this.input[r].length; c++) {
+        // Skip if it's a forest
+        if (this.input[r][c] === '#') {
+          continue
+        }
+        
+        let neighbors = 0
+        for (const [nr, nc] of [
+          [r - 1, c],
+          [r + 1, c],
+          [r, c - 1],
+          [r, c + 1],
+        ]) {
+          // Check for bounds and if it's a forest
+          if (
+            0 <= nr &&
+            nr < this.input.length &&
+            0 <= nc &&
+            nc < this.input[r].length &&
+            this.input[nr][nc] !== '#'
+          ) {
+            neighbors++
+          }
+          if (neighbors >= 3) {
+            points.push([r, c])
+          }
+        }
+      }
+    }
+
+    const graph: Record<string, Record<string, number>> = {}
+    for (let pt of points) {
+      graph[JSON.stringify(pt)] = {}
+    }
+
+    for (const [sr, sc] of points) {
+      const stack: [n: number, r: number, c: number][] = [[0, sr, sc]]
+      const seen = new Set([JSON.stringify([sr, sc])])
+
+      while (stack.length > 0) {
+        const [n, r, c] = stack.pop()!
+
+        if (n !== 0 && points.some((pt) => pt[0] === r && pt[1] === c)) {
+          graph[JSON.stringify([sr, sc])][JSON.stringify([r, c])] = n
+          continue
+        }
+
+        for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+          const nr = r + dr
+          const nc = c + dc
+          // prettier-ignore
+          if (
+            nr >= 0 && nr < this.input.length && nc >= 0 && nc < this.input[0].length &&
+            this.input[nr][nc] !== "#" &&
+            !seen.has(JSON.stringify([nr, nc]))
+          ) {
+            stack.push([n + 1, nr, nc])
+            seen.add(JSON.stringify([nr, nc]))
+          }
+        }
+      }
+    }
+
+    const seen = new Set<string>()
+    const dfs = (pt: number[]): number => {
+      if (eq(pt, end)) {
+        return 0
+      }
+
+      let m = -Infinity
+
+      seen.add(JSON.stringify(pt))
+      const nodes = graph[JSON.stringify(pt)]
+      for (const nx in graph[JSON.stringify(pt)]) {
+        if (!seen.has(nx)) {
+          m = Math.max(m, dfs(JSON.parse(nx)) + graph[JSON.stringify(pt)][nx])
+        }
+      }
+      seen.delete(JSON.stringify(pt))
+
+      return m
+    }
+
+    return dfs(start)
   }
 }
