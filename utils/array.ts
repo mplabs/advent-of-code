@@ -52,3 +52,26 @@ export function* range(start?: number, end?: number, step?: number): Generator<n
  */
 export const countValueInArray = <T>(arr: T[], value: T): number =>
     arr.filter((item) => item === value).length
+
+
+/**
+ * Generate all permutations of an array.
+ * @param {T[]} arr - The array to permute.
+ * @returns {T[][]} - An array of all permutations.
+ */
+export function getPermutations<T>(arr: T[]): T[][] {
+    if (arr.length <= 1) {
+        return [arr]
+    }
+
+    const permutations: T[][]  = []
+    for (let i = 0; i < arr.length; i++) {
+        const remaining = arr.slice(0, i).concat(arr.slice(i + 1))
+        const subPermutations = getPermutations(remaining)
+        for (const sub of subPermutations) {
+            permutations.push([arr[i], ...sub])
+        }
+    }
+
+    return permutations
+}
