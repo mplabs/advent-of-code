@@ -3,8 +3,14 @@ import { range } from '@utils/array'
 import { transpose } from '@utils/matrix'
 
 export default class Day4 extends AbstractPuzzle {
+    // We should really only do this once
+    _input: string | undefined
     get input() {
-        return this.rawInput.split('\n').map((line) => line.split(''))
+        if (!this._input) {
+            this._input = this.rawInput.split('\n').map((line) => line.split(''))
+        }
+        
+        return this._input
     }
 
     public solveFirst(): number {
