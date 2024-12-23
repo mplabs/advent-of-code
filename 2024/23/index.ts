@@ -31,7 +31,7 @@ class Network {
         }
 
         for (const node of P) {
-            const neighbors = new Set(this.neighbors.get(node)) || new Set()
+            const neighbors = new Set(this.neighbors.get(node) || [])
 
             // Recurse with node added to R, and neighbors updated
             this.bronKerbosch(
@@ -43,6 +43,53 @@ class Network {
 
             P.delete(node)
             X.add(node)
+        }
+    }
+
+    bronKerbosch2(
+        R: Set<string>, // Current clique
+        P: Set<string>, // Candidate nodes
+        X: Set<string>, // Already processed
+        cliques: Set<string>[]
+    ): void {
+        if (P.size === 0 && X.size === 0) {
+            // R is a maximal clique
+            cliques.push(new Set(R))
+            return
+        }
+
+        // Choose a pivot vertex 'u' from P ⋃ X
+        const unionPX = P.union(X)
+        let pivot: string | null = null
+        let maxNeighbors = -1
+
+        for (const vertex of unionPX) {
+            const neighbors = new Set(this.neighbors.get(vertex) || [])
+            if (neighbors.size > maxNeighbors) {
+                pivot = vertex
+                maxNeighbors = neighbors.size
+            }
+        }
+
+        const pivotNeighbors = pivot
+            ? new Set(this.neighbors.get(pivot)) || new Set()
+            : new Set()
+
+        // Iterate through vertices in P \ N(u)
+        for (const v of P) {
+            if (pivotNeighbors.has(v)) {
+                continue
+            }
+
+            const neighbors = new Set(this.neighbors.get(v) || [])
+            const newR = new Set(R).add(v)
+            const newP = new Set([...P].filter(n => neighbors.has(n)))
+            const newX = new Set([...X].filter(n => neighbors.has(n)))
+
+            this.bronKerbosch2(newR, newP, newX, cliques)
+
+            P.delete(v)
+            X.add(v)
         }
     }
 
@@ -70,7 +117,7 @@ class Network {
         const P = new Set<string>(this.neighbors.keys())
         const X = new Set<string>()
 
-        this.bronKerbosch(R, P, X, cliques)
+        this.bronKerbosch2(R, P, X, cliques)
 
         return [...cliques.sort((a, b) => b.size - a.size)[0]]
     }
