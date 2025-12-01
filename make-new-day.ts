@@ -5,7 +5,7 @@ const newDayNameRegexp = /\d{4}\/([01][0-9]|[2][0-5])/
 
 const [dayToSolve] = process.argv.slice(2)
 
-if (!newDayNameRegexp.test(dayToSolve)) {
+if (typeof dayToSolve !== 'string' || !newDayNameRegexp.test(dayToSolve)) {
     console.error(`Usage: bun run create <year>/<day>\n e.g. "bun run create 2023/03"`)
     process.exit(0)
 }

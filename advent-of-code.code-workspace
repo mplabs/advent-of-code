@@ -1,0 +1,18 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"editor.suggest.preview": false,
+		"editor.quickSuggestions": {
+			"other": false,
+			"comments": false,
+			"strings": false
+		},
+		"github.copilot.enable": {
+			"*": false
+		}
+	},
+}
