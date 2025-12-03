@@ -174,3 +174,7 @@ dist
 # Finder (MacOS) folder config
 .DS_Store
 
+# Don't share puzzle text and inputs
+**/README.md
+!/README.md
+input.txt
