@@ -59,3 +59,30 @@ export const factorial = (function () {
         return cache[n]
     }
 })()
+
+
+/**
+ * Form a number from its digits
+ * 
+ * @function
+ * @param {number[]} digits - the digits that form the number
+ * @returns number - the result
+ * 
+ * @example
+ * numberFromDigits([1,2,3]); // Returns 123
+ */
+export function numberFromDigits(digits: number | number[], ...rest: number[]): number {
+    digits = Array.isArray(digits) ? digits : [digits, ...rest]
+
+    let result = 0, factorial = 1
+    for (let i = digits.length - 1; i >= 0; i--) {
+        if (digits[i] > 9 || digits[i] < 0) {
+            throw Error(`Digit must be between 0 and 9, got ${digits[i]}`)
+        }
+
+        result += factorial * digits[i]
+        factorial *= 10
+    }
+
+    return result
+}

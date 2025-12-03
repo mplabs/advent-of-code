@@ -11,32 +11,50 @@ export default class Day3 extends AbstractPuzzle {
     }
 
     public solveFirst(): unknown {
-        let result = 0
-        for (let bank of this.input) {
-            let max = 0
-            for (let i = 0; i < bank.length - 1; i++) {
-                for (let j = i + 1; j < bank.length ; j++) {
-                    let pair = bank[i] * 10 + bank[j]
-                    if (pair > max) {
-                        max = pair
-                    }
-                }
-            }
+        // let result = 0
+        // for (let bank of this.input) {
+        //     let max = 0
+        //     for (let i = 0; i < bank.length - 1; i++) {
+        //         for (let j = i + 1; j < bank.length ; j++) {
+        //             let pair = bank[i] * 10 + bank[j]
+        //             if (pair > max) {
+        //                 max = pair
+        //             }
+        //         }
+        //     }
 
-            result += max
-        }
+        //     result += max
+        // }
 
-        return result
+        // return result
+
+        return this.solve(2)
     }
 
     public solveSecond(): unknown {
+        return this.solve(12)
+    }
+
+    private solve(length: number): number {
         let result = 0
 
         this.input.forEach(bank => {
-            let max = 0
-            
+            while (bank.length > length) {
+                let dropped = false
+                for (let i = 0; i < bank.length - 1; i++) {
+                    if (bank[i] < bank[i + 1]) {
+                        dropped = true
+                        bank.splice(i, 1)
+                        break
+                    }
+                }
+                if (!dropped) {
+                    bank.pop()
+                }
+            }
+            result += numberFromDigits(bank)
         })
 
-        return null
+        return result
     }
 }
