@@ -1,34 +1,63 @@
-export const equal = <T>(a: T, b: T): boolean => {
+/**
+ * Deeply compares two values, supporting primitives, arrays, and plain objects.
+ *
+ * @param a - First value to compare.
+ * @param b - Second value to compare.
+ * @returns `true` when the inputs are structurally equal, otherwise `false`.
+ */
+export const equal = (a: unknown, b: unknown): boolean => {
+    if (a === b) {
+        return true
+    }
+
     if (typeof a !== typeof b) {
         return false
     }
 
-    if (typeof a === 'object') {
-        if (Array.isArray(a) && Array.isArray(b)) {
-            if (a.length !== b.length) {
-                return false
-            }
+    if (a === null || b === null) {
+        return false
+    }
 
-            return a.every((item, idx) => equal(item, b[idx]))
+    if (Array.isArray(a) || Array.isArray(b)) {
+        if (!Array.isArray(a) || !Array.isArray(b)) {
+            return false
         }
 
-        const aKeys = Object.keys(a)
-        const bKeys = Object.keys(b)
+        if (a.length !== b.length) {
+            return false
+        }
+
+        return a.every((item, idx) => equal(item, b[idx]))
+    }
+
+    if (typeof a === 'object' && typeof b === 'object') {
+        const aRecord = a as Record<PropertyKey, unknown>
+        const bRecord = b as Record<PropertyKey, unknown>
+
+        const aKeys = Object.keys(aRecord)
+        const bKeys = Object.keys(bRecord)
 
         if (aKeys.length !== bKeys.length) {
             return false
         }
 
-        return aKeys.every((key) => equal(a[key], b[key]))
+        return aKeys.every((key) => equal(aRecord[key], bRecord[key]))
     }
 
-    return a === b
+    return false
 }
 
+/**
+ * Computes the Manhattan (L1) distance between two points on a grid.
+ *
+ * @param pointA - Tuple describing the first point `[x, y]`.
+ * @param pointB - Tuple describing the second point `[x, y]`.
+ * @returns The absolute grid distance between the two points.
+ */
 export const manhattenDistance = (
     [x1, y1]: [x: number, y: number],
     [x2, y2]: [x: number, y: number],
-): number => Math.abs(x1 - x2) + Math.abs(y2 - y2)
+): number => Math.abs(x1 - x2) + Math.abs(y1 - y2)
 
 export const memoize = <T extends (...args: any[]) => any>(fn: T): T => {
     const cache = new Map<string, ReturnType<T>>()
@@ -83,13 +112,13 @@ export function Cached() {
         const cacheKey = Symbol(`_${String(propertyKey)}_cache`)
 
         descriptor.get = function () {
-            const instance = this as Record<symbol, any>
+            const instance = this as Record<symbol, unknown>
 
-            if (!instance.hasOwnProperty(cacheKey)) {
+            if (!Object.prototype.hasOwnProperty.call(instance, cacheKey)) {
                 instance[cacheKey] = originalGetter.call(this)
             }
 
-            return instance[cacheKey]
+            return instance[cacheKey] as ReturnType<typeof originalGetter>
         }
     }
 }
