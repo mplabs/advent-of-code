@@ -94,3 +94,58 @@ export function Cached() {
     }
 }
 
+/**
+ * Memoizes the result of a method based on its arguments.
+ *
+ * Each instance of the class gets its own cache.
+ * The cache key is derived from the method's argument list using `JSON.stringify`,
+ * so only JSON-serializable argument types are supported.
+ *
+ * @example
+ * class Example {
+ *   @Memoized()
+ *   compute(x, y) {
+ *     console.log("Computing…");
+ *     return x + y;
+ *   }
+ * }
+ *
+ * const ex = new Example();
+ * ex.compute(1, 2); // logs "Computing…", returns 3
+ * ex.compute(1, 2); // returns cached result (3), no log
+ *
+ * @throws {Error} If applied to something other than a method.
+ * @returns {MethodDecorator}
+ */
+export function Memoized() {
+    return function (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
+        const originalMethod = descriptor.value
+
+        if (typeof originalMethod !== 'function') {
+            throw new Error(`@Memoized can only be applied to methods.`)
+        }
+
+        const cacheKey = Symbol(`_${String(propertyKey)}_cache`)
+
+        descriptor.value = function (...args: any[]) {
+            const instance = this as Record<PropertyKey, any>
+
+            // one Map per instance
+            let cache: Map<string, any> = instance[cacheKey]
+            if (!cache) {
+                cache = new Map()
+                instance[cacheKey] = cache
+            }
+
+            const key = args.length === 0 ? '__no_args__' : JSON.stringify(args) // works for simple arg types
+
+            if (cache.has(key)) {
+                return cache.get(key)
+            }
+
+            const result = originalMethod.apply(this, args)
+            cache.set(key, result)
+            return result
+        }
+    }
+}
