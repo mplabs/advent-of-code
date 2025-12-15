@@ -74,3 +74,21 @@ export function getPermutations<T>(arr: T[]): T[][] {
 
     return permutations
 }
+
+/**
+ * Returns the two given numbers in ascending order.
+ *
+ * @param a - First numeric value.
+ * @param b - Second numeric value.
+ * @returns A tuple where the first element is the smaller value
+ *          and the second element is the larger value.
+ *
+ * @example
+ * ```ts
+ * const [min, max] = minMax(10, 3)
+ * // min === 3, max === 10
+ * ```
+ */
+export function minMax(a: number, b: number): [number, number] {
+    return a < b ? [a, b] : [b, a]
+}
