@@ -86,3 +86,13 @@ export function numberFromDigits(digits: number | number[], ...rest: number[]): 
 
     return result
 }
+
+/**
+ * Computes the arithmetic sum of the provided numeric arguments.
+ *
+ * @param {...number} numbers - One or more numbers to be added together.
+ * @returns {number} The sum of all provided numbers. Returns 0 if no arguments are supplied.
+ */
+export function sum(...numbers: number[]): number {
+    return numbers.reduce((acc, cur) => acc + cur, 0)
+}
