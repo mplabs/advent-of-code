@@ -1,7 +1,11 @@
 import AbstractPuzzle from '@utils/AbstractPuzzle'
-import { Cached } from '@utils/utils'
+import { Cached, Memoized } from '@utils/utils'
+
+type Pattern = { pattern: number[]; cost: number }
 
 export default class Day10 extends AbstractPuzzle {
+    private patterCostByMachine = new Map<number, Pattern[]>()
+
     @Cached()
     get input() {
         const lines = this.rawInput.split('\n')
@@ -70,141 +74,99 @@ export default class Day10 extends AbstractPuzzle {
     }
 
     public solveSecond(): unknown {
-        const total = this.input
-            .map((machine) => minPressesForMachine(machine.buttons, machine.joltage))
-            .reduce((a, b) => a + b, 0)
+        this.patterCostByMachine.clear()
 
-        return total
+        let result = 0
 
-        function minPressesForMachine(buttonMasks: number[], joltage: number[]): number {
-            const numButtons = buttonMasks.length
-            const numCounters = joltage.length
+        for (let i = 0; i < this.input.length; i++) {
+            const machine = this.input[i]
 
-            console.log({ buttonMasks, joltage })
+            // Precompute patterns:
+            // Each pattern is a vector of counts cerated by pressing a subset of buttons once, each
+            this.patterCostByMachine.set(i, this.buildPatterns(machine.buttons, machine.joltage.length))
 
-            // contrib[button][counter] = 1 if this button increments that counter
-            const contrib: number[][] = buttonMasks.map((mask) => {
-                const row = new Array<number>(numCounters).fill(0)
-                for (let i = 0; i < numCounters; i++) {
-                    if (mask & (1 << i)) {
-                        row[i] = 1
-                    }
-                }
-                return row
-            })
-
-            // Order buttons: more "impactful" ones first (more counters affected)
-            const order = [...Array(numButtons).keys()]
-            order.sort((a, b) => {
-                const ca = contrib[a].reduce((s, v) => s + v, 0)
-                const cb = contrib[b].reduce((s, v) => s + v, 0)
-                return cb - ca
-            })
-            const contribOrdered = order.map((i) => contrib[i])
-
-            // Global max counters affected by a single button press
-            const maxAffect =
-                contribOrdered.reduce(
-                    (m, row) =>
-                        Math.max(
-                            m,
-                            row.reduce((s, v) => s + v, 0),
-                        ),
-                    1,
-                ) || 1
-
-            const remaining = joltage.slice()
-            let best = Infinity
-
-            function dfs(buttonIdx: number, pressesSoFar: number): void {
-                if (pressesSoFar >= best) return
-
-                // Compute sum of remaining and prune if obviously impossible
-                let sumRem = 0
-                for (let i = 0; i < numCounters; i++) {
-                    if (remaining[i] < 0) {
-                        // overshot some counter earlier
-                        return
-                    }
-                    sumRem += remaining[i]
-                }
-
-                if (sumRem === 0) {
-                    // Exactly matched joltage requirements
-                    best = pressesSoFar
-                    return
-                }
-
-                // Lower bound on more presses needed:
-                // each press can fix at most `maxAffect` units of remaining across all counters
-                const lowerBound = Math.ceil(sumRem / maxAffect)
-                if (pressesSoFar + lowerBound >= best) {
-                    return
-                }
-
-                if (buttonIdx === numButtons) {
-                    // No more buttons to use, but still remaining joltage
-                    return
-                }
-
-                const row = contribOrdered[buttonIdx]
-
-                // Does this button affect anything at all?
-                let affectsAny = false
-                for (let i = 0; i < numCounters; i++) {
-                    if (row[i] === 1) {
-                        affectsAny = true
-                        break
-                    }
-                }
-
-                if (!affectsAny) {
-                    // Useless button, skip it
-                    dfs(buttonIdx + 1, pressesSoFar)
-                    return
-                }
-
-                // Maximum times we can press this button without overshooting
-                let maxPress = Infinity
-                for (let i = 0; i < numCounters; i++) {
-                    if (row[i] === 1) {
-                        maxPress = Math.min(maxPress, remaining[i])
-                    }
-                }
-                if (!Number.isFinite(maxPress)) {
-                    maxPress = 0
-                }
-
-                // Case 1: don't press this button at all
-                dfs(buttonIdx + 1, pressesSoFar)
-
-                // Case 2: press this button pc times, for pc = 1..maxPress
-                for (let pc = 1; pc <= maxPress; pc++) {
-                    // Apply pc presses of this button
-                    for (let i = 0; i < numCounters; i++) {
-                        if (row[i] === 1) {
-                            remaining[i] -= pc
-                        }
-                    }
-
-                    dfs(buttonIdx + 1, pressesSoFar + pc)
-
-                    // Roll back
-                    for (let i = 0; i < numCounters; i++) {
-                        if (row[i] === 1) {
-                            remaining[i] += pc
-                        }
-                    }
-                }
-            }
-
-            dfs(0, 0)
-
-            if (!Number.isFinite(best)) {
-                throw new Error('Target joltage configuration unreachable')
-            }
-
-            return best
+            result += this.fewestPresses(i, ...machine.joltage)
         }
+
+        return result
+
+    }
+
+    private buildPatterns(buttonMasks: number[], numCounters: number): Pattern[] {
+        // Convert each button bitmask into a 0/1 coefficient vector over counters
+        const coeffs: number[][] = buttonMasks.map(mask => 
+            Array.from({ length: numCounters }, (_, i) => (mask & (1 << i)) !== 0 ? 1 : 0)
+        )
+
+        // Enumerate all subsets,
+        // store the minimun subset size for each resulting pattern vector
+        const out = new Map<string, Pattern>()
+        const totalMasks = 1 << coeffs.length
+
+        for (let subset = 0; subset < totalMasks; subset++) {
+            let cost = 0
+            const pattern = Array.from({ length: numCounters }, () => 0)
+
+            for (let b = 0; b < coeffs.length; b++) {
+                if ((subset & (1 << b)) === 0) {
+                    continue
+                }
+
+                cost++
+                const row = coeffs[b]
+                for (let i = 0; i < numCounters; i++) {
+                    pattern[i] += row[i]
+                }
+            }
+
+            const key = pattern.join(',')
+            const prev = out.get(key)
+            if (!prev || cost < prev.cost) {
+                out.set(key, { pattern, cost })
+            }
+        }
+
+        return [...out.values()]
+    }
+
+    @Memoized()
+    private fewestPresses(machineId: number, ...joltages: number[]): number {
+        // No more presses needed
+        if (joltages.every(j => j === 0)) {
+            return 0
+        }
+
+        // Disallow negativ joltages (impossible branch)
+        if (joltages.some(j => j < 0)) {
+            return Infinity
+        }
+
+        const patterns = this.patterCostByMachine.get(machineId)
+        if (!patterns) {
+            throw new Error(`Missing patterns for machineId=${machineId}`)
+        }
+
+        let best = Infinity
+        checkPatterns: for (const { pattern, cost } of patterns) {
+            // Must be componentwise less than and parity-compatible
+            for (let i = 0; i < joltages.length; i++) {
+                const p = pattern[i]
+                const g = joltages[i]
+
+                if (p > g || ((p ^ g) & 1) !== 0) {
+                    continue checkPatterns
+                }
+            }
+
+            const next = joltages.map((joltage, i) => (joltage - pattern[i]) / 2)
+            
+            // Press the buttons once
+            const candidate = cost + 2 * this.fewestPresses(machineId, ...next)
+            if (candidate < best) {
+                best = candidate
+            }
+        }
+
+        return best
     }
 }
