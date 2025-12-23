@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug AoC Active Day (Bun)",
+      "type": "bun",
+      "request": "launch",
+      "program": "${workspaceFolder}/index.ts",
+      "args": ["${relativeFileDirname}"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ],
+  "inputs": []
+}
