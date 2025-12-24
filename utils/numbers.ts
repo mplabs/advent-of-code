@@ -60,21 +60,21 @@ export const factorial = (function () {
     }
 })()
 
-
 /**
  * Form a number from its digits
- * 
+ *
  * @function
  * @param {number[]} digits - the digits that form the number
  * @returns number - the result
- * 
+ *
  * @example
  * numberFromDigits([1,2,3]); // Returns 123
  */
 export function numberFromDigits(digits: number | number[], ...rest: number[]): number {
     digits = Array.isArray(digits) ? digits : [digits, ...rest]
 
-    let result = 0, factorial = 1
+    let result = 0,
+        factorial = 1
     for (let i = digits.length - 1; i >= 0; i--) {
         if (digits[i] > 9 || digits[i] < 0) {
             throw Error(`Digit must be between 0 and 9, got ${digits[i]}`)
@@ -95,4 +95,48 @@ export function numberFromDigits(digits: number | number[], ...rest: number[]): 
  */
 export function sum(...numbers: number[]): number {
     return numbers.reduce((acc, cur) => acc + cur, 0)
+}
+
+/**
+ * Generates all permutations of an array of numbers using a recursive backtracking approach.
+ * This function uses a generator to yield permutations one at a time, making it memory-efficient
+ * for large permutation sets.
+ * 
+ * @param arr - The array of numbers to permute
+ * @param start - The starting index for permutation generation (used internally for recursion)
+ * @yields {number[]} An array representing one permutation of the input array
+ * 
+ * @example
+ * ```typescript
+ * // Generate all permutations of [0, 1, 2]
+ * const permutations = Array.from(permute([0, 1, 2]));
+ * // Returns: [[0,1,2], [0,2,1], [1,0,2], [1,2,0], [2,0,1], [2,1,0]]
+ * 
+ * // Iterate through permutations one by one
+ * for (const perm of permute([0, 1, 2, 3])) {
+ *   console.log(perm);
+ * }
+ * ```
+ * 
+ * @remarks
+ * - Time complexity: O(n! × n) where n is the length of the input array
+ * - Space complexity: O(n! × n) for storing all permutations, O(n) for recursion stack
+ * - The input array is modified during execution (backtracking) - create a copy if you need to preserve the original
+ * 
+ * @see {@link https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order|Permutation Generation}
+ */
+export function* permute(arr: number[], start: number = 0): Generator<number[], void, unknown> {
+    if (start === arr.length - 1) {
+        yield [...arr]
+        return
+    }
+
+    for (let i = start; i < arr.length; i++) {
+        // Swap elements
+        ;[arr[start], arr[i]] = [arr[i], arr[start]]
+        // Recursively generate permutations
+        yield* permute(arr, start + 1)
+        // Backtrack (swap back)
+        ;[arr[start], arr[i]] = [arr[i], arr[start]]
+    }
 }

@@ -20,113 +20,220 @@ const readParam = (memory: number[], param: number, mode: number): number => {
 }
 
 export function run(codes: number[], ...inputs: number[]): { memory: number[]; outputs: number[] } {
-    const memory = [...codes]
-    const outputs: number[] = []
+    // Create a new Computer instance
+    const computer = new Computer(codes, inputs)
 
-    let ip = 0
-    let inpPtr = 0
+    // Run the computer
+    computer.run()
 
-    while (ip < memory.length) {
-        const [opcode, m1, m2, m3] = decode(memory[ip])
+    // Return the results in the same format as the old implementation
+    return {
+        memory: [...computer['memory']], // Create a copy of memory
+        outputs: computer.getOutput(),
+    }
+}
 
-        switch (opcode) {
-            case 1: {
-                // add
-                const p1 = memory[ip + 1]
-                const p2 = memory[ip + 2]
-                const dst = memory[ip + 3]
-                const a = readParam(memory, p1, m1)
-                const b = readParam(memory, p2, m2)
-                memory[dst] = a + b
-                ip += 4
+export class Computer {
+    public halted: boolean = false
+    
+    private memory: number[]
+    private ip: number = 0
+    private inputs: number[]
+    private outputs: number[] = []
+    private waitingForInput: boolean = false
+    private inputIndex: number = 0
+
+    constructor(program: number[], initialInputs: number[] = []) {
+        this.memory = [...program] // Deep copy
+        this.inputs = [...initialInputs]
+    }
+
+    // Run until ew need more input or we halt
+    public run(): void {
+        while (!this.halted && !this.waitingForInput) {
+            if (this.ip >= this.memory.length) {
+                this.halted = true
                 break
             }
 
-            case 2: {
-                // multiply
-                const p1 = memory[ip + 1]
-                const p2 = memory[ip + 2]
-                const dst = memory[ip + 3]
-                const a = readParam(memory, p1, m1)
-                const b = readParam(memory, p2, m2)
-                memory[dst] = a * b
-                ip += 4
-                break
-            }
+            const [opcode, m1, m2, m3] = this.decode(this.memory[this.ip])
 
-            case 3: {
-                // input
-                const dst = memory[ip + 1]
-                if (inpPtr >= inputs.length) {
-                    throw new Error(`Opcode 3 requested input out of range`)
+            switch (opcode) {
+                case 1: {
+                    // add
+                    const p1 = this.memory[this.ip + 1]
+                    const p2 = this.memory[this.ip + 2]
+                    const dst = this.memory[this.ip + 3]
+                    const a = this.readParam(p1, m1)
+                    const b = this.readParam(p2, m2)
+                    this.memory[dst] = a + b
+                    this.ip += 4
+                    break
                 }
-                memory[dst] = inputs[inpPtr++]
-                ip += 2
-                break
-            }
 
-            case 4: {
-                // output
-                const p1 = memory[ip + 1]
-                const value = readParam(memory, p1, m1)
-                outputs.push(value)
-                ip += 2
-                break
-            }
+                case 2: {
+                    // multiply
+                    const p1 = this.memory[this.ip + 1]
+                    const p2 = this.memory[this.ip + 2]
+                    const dst = this.memory[this.ip + 3]
+                    const a = this.readParam(p1, m1)
+                    const b = this.readParam(p2, m2)
+                    this.memory[dst] = a * b
+                    this.ip += 4
+                    break
+                }
 
-            case 5: {
-                // jump-if-true
-                const p1 = memory[ip + 1]
-                const p2 = memory[ip + 2]
-                const v1 = readParam(memory, p1, m1)
-                const v2 = readParam(memory, p2, m2)
-                ip = (v1 !== 0) ? v2 : ip + 3
-                break;
-            }
+                case 3: {
+                    // input
+                    if (this.inputIndex >= this.inputs.length) {
+                        this.waitingForInput = true
+                        return
+                    }
+                    const dst = this.memory[this.ip + 1]
+                    this.memory[dst] = this.inputs[this.inputIndex++]
+                    this.ip += 2
+                    break
+                }
 
-            case 6: {
-                // jump-if-false
-                const p1 = memory[ip + 1]
-                const p2 = memory[ip + 2]
-                const v1 = readParam(memory, p1, m1)
-                const v2 = readParam(memory, p2, m2)
-                ip = (v1 === 0) ? v2 : ip + 3
-                break;
-            }
+                case 4: {
+                    // output
+                    const p1 = this.memory[this.ip + 1]
+                    const value = this.readParam(p1, m1)
+                    this.addOutput(value)
+                    this.ip += 2
+                    break
+                }
 
-            case 7: {
-                // less than
-                const p1 = memory[ip + 1]
-                const p2 = memory[ip + 2]
-                const dst = memory[ip + 3]
-                const v1 = readParam(memory, p1, m1)
-                const v2 = readParam(memory, p2, m2)
-                memory[dst] = v1 < v2 ? 1 : 0
-                ip += 4
-                break;
-            }
+                case 5: {
+                    // jump-if-true
+                    const p1 = this.memory[this.ip + 1]
+                    const p2 = this.memory[this.ip + 2]
+                    const v1 = this.readParam(p1, m1)
+                    const v2 = this.readParam(p2, m2)
+                    this.ip = v1 !== 0 ? v2 : this.ip + 3
+                    break
+                }
 
-            case 8: {
-                // equals
-                const p1 = memory[ip + 1]
-                const p2 = memory[ip + 2]
-                const dst = memory[ip + 3]
-                const v1 = readParam(memory, p1, m1)
-                const v2 = readParam(memory, p2, m2)
-                memory[dst] = v1 === v2 ? 1 : 0
-                ip += 4
-                break;
-            }
+                case 6: {
+                    // jump-if-false
+                    const p1 = this.memory[this.ip + 1]
+                    const p2 = this.memory[this.ip + 2]
+                    const v1 = this.readParam(p1, m1)
+                    const v2 = this.readParam(p2, m2)
+                    this.ip = v1 === 0 ? v2 : this.ip + 3
+                    break
+                }
 
-            case 99: {
-                return { memory, outputs }
-            }
+                case 7: {
+                    // less than
+                    const p1 = this.memory[this.ip + 1]
+                    const p2 = this.memory[this.ip + 2]
+                    const dst = this.memory[this.ip + 3]
+                    const v1 = this.readParam(p1, m1)
+                    const v2 = this.readParam(p2, m2)
+                    this.memory[dst] = v1 < v2 ? 1 : 0
+                    this.ip += 4
+                    break
+                }
 
-            default: {
-                throw new Error(`Unknown opcode ${opcode} at position ${ip}`)
+                case 8: {
+                    // equals
+                    const p1 = this.memory[this.ip + 1]
+                    const p2 = this.memory[this.ip + 2]
+                    const dst = this.memory[this.ip + 3]
+                    const v1 = this.readParam(p1, m1)
+                    const v2 = this.readParam(p2, m2)
+                    this.memory[dst] = v1 === v2 ? 1 : 0
+                    this.ip += 4
+                    break
+                }
+
+                case 99: {
+                    this.halted = true
+                    return
+                }
+
+                default: {
+                    throw new Error(`Unknown opcode ${opcode} at position ${this.ip}`)
+                }
             }
         }
     }
 
-    return { memory, outputs }
+    // Get next input (will block if no input)
+    public getInput(): number {
+        if (this.inputs.length > 0) {
+            return this.inputs.shift()!
+        }
+
+        // This is where you'd handle waiting for input in feedback mode
+        throw new Error(`No input available`)
+    }
+
+    // Add output to results
+    public addOutput(value: number): void {
+        this.outputs.push(value)
+    }
+
+    // Set input for next run
+    public setInput(inputs: number[]): void {
+        this.inputs = [...inputs]
+        this.inputIndex = 0
+    }
+
+    // For feedback loop - add input from previous output
+    public addInput(value: number): void {
+        this.inputs.push(value)
+        this.waitingForInput = false
+    }
+
+    // Get last output (for feedback loop)
+    public getLastOutput(): number | null {
+        return this.outputs.length > 0 ? this.outputs[this.outputs.length - 1] : null
+    }
+
+    // Reset for reuse (if needed)
+    public reset(): void {
+        this.ip = 0
+        this.halted = false
+        this.waitingForInput = false
+        this.inputIndex = 0
+        this.outputs = []
+    }
+
+    // Get current outputs
+    public getOutput(): number[] {
+        return [...this.outputs]
+    }
+
+    // Clear the outputs
+    public clearOutput(): void {
+        this.outputs = []
+    }
+
+    // Check if computer is waiting for input
+    public isWaitingForInput(): boolean {
+        return this.waitingForInput
+    }
+
+    // Helper method for decoding
+    private decode(instruction: number): [number, number, number, number] {
+        const opcode = instruction % 100
+        const modes = Math.floor(instruction / 100)
+        return [opcode, modes % 10, Math.floor(modes / 10) % 10, Math.floor(modes / 100) % 10]
+    }
+
+    private readParam(param: number, mode: number): number {
+        if (mode === 0) {
+            // position mode
+            return this.memory[param] ?? 0
+        }
+
+        if (mode === 1) {
+            // immediate mode
+            return param
+        }
+
+        throw new Error(`Unsupported mode ${mode}.`)
+    }
 }
