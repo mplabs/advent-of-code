@@ -1,24 +1,3 @@
-const decode = (instruction: number): [number, number, number, number] => [
-    instruction % 100, // opcode
-    Math.floor(instruction / 100) % 10, // m1
-    Math.floor(instruction / 1000) % 10, // m2
-    Math.floor(instruction / 10000) % 10, // m3
-]
-
-const readParam = (memory: number[], param: number, mode: number): number => {
-    if (mode === 0) {
-        // position mode
-        return memory[param] ?? 0
-    }
-
-    if (mode === 1) {
-        // immediate mode
-        return param
-    }
-
-    throw new Error(`Unsupported mode ${mode}.`)
-}
-
 export function run(codes: number[], ...inputs: number[]): { memory: number[]; outputs: number[] } {
     // Create a new Computer instance
     const computer = new Computer(codes, inputs)
@@ -42,6 +21,7 @@ export class Computer {
     private outputs: number[] = []
     private waitingForInput: boolean = false
     private inputIndex: number = 0
+    private relativeBase: number = 0
 
     constructor(program: number[], initialInputs: number[] = []) {
         this.memory = [...program] // Deep copy
@@ -63,9 +43,10 @@ export class Computer {
                     // add
                     const p1 = this.memory[this.ip + 1]
                     const p2 = this.memory[this.ip + 2]
-                    const dst = this.memory[this.ip + 3]
+                    const p3 = this.memory[this.ip + 3]
                     const a = this.readParam(p1, m1)
                     const b = this.readParam(p2, m2)
+                    const dst = this.writeAddr(p3, m3)
                     this.memory[dst] = a + b
                     this.ip += 4
                     break
@@ -75,9 +56,10 @@ export class Computer {
                     // multiply
                     const p1 = this.memory[this.ip + 1]
                     const p2 = this.memory[this.ip + 2]
-                    const dst = this.memory[this.ip + 3]
+                    const p3 = this.memory[this.ip + 3]
                     const a = this.readParam(p1, m1)
                     const b = this.readParam(p2, m2)
+                    const dst = this.writeAddr(p3, m3)
                     this.memory[dst] = a * b
                     this.ip += 4
                     break
@@ -89,7 +71,8 @@ export class Computer {
                         this.waitingForInput = true
                         return
                     }
-                    const dst = this.memory[this.ip + 1]
+                    const p1 = this.memory[this.ip + 1]
+                    const dst = this.writeAddr(p1, m1)
                     this.memory[dst] = this.inputs[this.inputIndex++]
                     this.ip += 2
                     break
@@ -128,9 +111,10 @@ export class Computer {
                     // less than
                     const p1 = this.memory[this.ip + 1]
                     const p2 = this.memory[this.ip + 2]
-                    const dst = this.memory[this.ip + 3]
+                    const p3 = this.memory[this.ip + 3]
                     const v1 = this.readParam(p1, m1)
                     const v2 = this.readParam(p2, m2)
+                    const dst = this.writeAddr(p3, m3)
                     this.memory[dst] = v1 < v2 ? 1 : 0
                     this.ip += 4
                     break
@@ -140,11 +124,21 @@ export class Computer {
                     // equals
                     const p1 = this.memory[this.ip + 1]
                     const p2 = this.memory[this.ip + 2]
-                    const dst = this.memory[this.ip + 3]
+                    const p3 = this.memory[this.ip + 3]
                     const v1 = this.readParam(p1, m1)
                     const v2 = this.readParam(p2, m2)
+                    const dst = this.writeAddr(p3, m3)
                     this.memory[dst] = v1 === v2 ? 1 : 0
                     this.ip += 4
+                    break
+                }
+
+                case 9: {
+                    // adjust the relative base
+                    const p1 = this.memory[this.ip + 1]
+                    const v1 = this.readParam(p1, m1)
+                    this.relativeBase += v1;
+                    this.ip += 2
                     break
                 }
 
@@ -160,25 +154,9 @@ export class Computer {
         }
     }
 
-    // Get next input (will block if no input)
-    public getInput(): number {
-        if (this.inputs.length > 0) {
-            return this.inputs.shift()!
-        }
-
-        // This is where you'd handle waiting for input in feedback mode
-        throw new Error(`No input available`)
-    }
-
     // Add output to results
     public addOutput(value: number): void {
         this.outputs.push(value)
-    }
-
-    // Set input for next run
-    public setInput(inputs: number[]): void {
-        this.inputs = [...inputs]
-        this.inputIndex = 0
     }
 
     // For feedback loop - add input from previous output
@@ -199,21 +177,12 @@ export class Computer {
         this.waitingForInput = false
         this.inputIndex = 0
         this.outputs = []
+        this.relativeBase = 0
     }
 
     // Get current outputs
     public getOutput(): number[] {
         return [...this.outputs]
-    }
-
-    // Clear the outputs
-    public clearOutput(): void {
-        this.outputs = []
-    }
-
-    // Check if computer is waiting for input
-    public isWaitingForInput(): boolean {
-        return this.waitingForInput
     }
 
     // Helper method for decoding
@@ -224,16 +193,34 @@ export class Computer {
     }
 
     private readParam(param: number, mode: number): number {
-        if (mode === 0) {
-            // position mode
-            return this.memory[param] ?? 0
-        }
+        switch (mode) {
+            case 0:
+                // position mode
+                return this.memory[param] ?? 0
 
-        if (mode === 1) {
-            // immediate mode
-            return param
-        }
+            case 1:
+                // immediate mode
+                return param
 
-        throw new Error(`Unsupported mode ${mode}.`)
+            case 2:
+                // relative mode
+                return this.memory[param + this.relativeBase] ?? 0
+
+            default:
+                throw new Error(`Unknown parameter mode: ${mode}`)
+        }
+    }
+
+    private writeAddr(param: number, mode: number): number {
+        switch (mode) {
+            case 0:
+                return param
+            
+            case 2:
+                return param + this.relativeBase
+            
+            default:
+                throw new Error(`Invalid mode for write parameter: ${mode}`)
+        }
     }
 }
