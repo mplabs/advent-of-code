@@ -14,12 +14,12 @@ export function run(codes: number[], ...inputs: number[]): { memory: number[]; o
 
 export class Computer {
     public halted: boolean = false
+    public waitingForInput: boolean = false
     
     private memory: number[]
     private ip: number = 0
     private inputs: number[]
     private outputs: number[] = []
-    private waitingForInput: boolean = false
     private inputIndex: number = 0
     private relativeBase: number = 0
 
@@ -183,6 +183,15 @@ export class Computer {
     // Get current outputs
     public getOutput(): number[] {
         return [...this.outputs]
+    }
+
+    public clearOutput(): void {
+        this.outputs = []
+    }
+
+    public appendInput(...newInputs: number[]) {
+        this.inputs.push(...newInputs)
+        this.waitingForInput = false
     }
 
     // Helper method for decoding
