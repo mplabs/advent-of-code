@@ -101,28 +101,28 @@ export function sum(...numbers: number[]): number {
  * Generates all permutations of an array of numbers using a recursive backtracking approach.
  * This function uses a generator to yield permutations one at a time, making it memory-efficient
  * for large permutation sets.
- * 
+ *
  * @param arr - The array of numbers to permute
  * @param start - The starting index for permutation generation (used internally for recursion)
  * @yields {number[]} An array representing one permutation of the input array
- * 
+ *
  * @example
  * ```typescript
  * // Generate all permutations of [0, 1, 2]
  * const permutations = Array.from(permute([0, 1, 2]));
  * // Returns: [[0,1,2], [0,2,1], [1,0,2], [1,2,0], [2,0,1], [2,1,0]]
- * 
+ *
  * // Iterate through permutations one by one
  * for (const perm of permute([0, 1, 2, 3])) {
  *   console.log(perm);
  * }
  * ```
- * 
+ *
  * @remarks
  * - Time complexity: O(n! × n) where n is the length of the input array
  * - Space complexity: O(n! × n) for storing all permutations, O(n) for recursion stack
  * - The input array is modified during execution (backtracking) - create a copy if you need to preserve the original
- * 
+ *
  * @see {@link https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order|Permutation Generation}
  */
 export function* permute(arr: number[], start: number = 0): Generator<number[], void, unknown> {
@@ -139,4 +139,77 @@ export function* permute(arr: number[], start: number = 0): Generator<number[], 
         // Backtrack (swap back)
         ;[arr[start], arr[i]] = [arr[i], arr[start]]
     }
+}
+
+/**
+ * Computes the greatest common divisor (GCD) of two integers using
+ * the iterative Euclidean algorithm.
+ *
+ * The result is always non-negative. Input values are normalized
+ * using their absolute values before computation.
+ *
+ * @param {number} a
+ *   The first integer.
+ * @param {number} b
+ *   The second integer.
+ * @returns {number}
+ *   The greatest common divisor of `a` and `b`.
+ *
+ * @example
+ * ```ts
+ * gcd(54, 24) // → 6
+ * gcd(-12, 8) // → 4
+ * ```
+ *
+ * @remarks
+ * This implementation assumes integer inputs. For very large values
+ * that may exceed IEEE-754 safe integer limits, consider a `bigint`
+ * implementation.
+ */
+export function gcd(a: number, b: number): number {
+    a = Math.abs(a)
+    b = Math.abs(b)
+
+    while (b !== 0) {
+        const t = a % b
+        a = b
+        b = t
+    }
+
+    return a
+}
+
+/**
+ * Computes the least common multiple (LCM) of one or more integers.
+ *
+ * The LCM is computed by reducing the input values pairwise using the
+ * two-argument LCM formula. If any argument is zero, the result is zero.
+ *
+ * @param {...number} values
+ *   One or more integers.
+ * @returns {number}
+ *   The least common multiple of all provided values.
+ *
+ * @example
+ * ```ts
+ * lcmN(6, 8, 9)    // → 72
+ * lcmN(4, 10, 20) // → 20
+ * ```
+ *
+ * @remarks
+ * - All inputs are treated as integers.
+ * - For large values or many arguments, results may exceed JavaScript’s
+ *   safe integer range; consider a `bigint` variant in that case.
+ */
+export function lcm(...values: number[]): number {
+    if (values.length === 0) {
+        throw new Error('lcmN requires at least one argument')
+    }
+
+    return values.reduce((acc, value) => {
+        if (acc === 0 || value === 0) {
+            return 0
+        }
+        return Math.abs((acc / gcd(acc, value)) * value)
+    })
 }

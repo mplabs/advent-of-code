@@ -1,5 +1,6 @@
 
 import AbstractPuzzle from '@utils/AbstractPuzzle'
+import { gcd } from '@utils/numbers'
 import { Cached } from '@utils/utils'
 
 type Coord = [x: number, y: number]
@@ -16,20 +17,6 @@ function angleFromUp(o: Coord, p: Coord): number {
 function dist2(a: Coord): number {
     return a[0] * a[0] + a[1] * a[1]
 }
-
-function gcd(a: number, b: number): number {
-    a = Math.abs(a)
-    b = Math.abs(b)
-
-    while (b !== 0) {
-        const t = a % b
-        a = b
-        b = t
-    }
-
-    return a
-}
-
 export default class Day10 extends AbstractPuzzle {
     bestStation?: Coord
 

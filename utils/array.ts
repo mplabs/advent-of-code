@@ -92,3 +92,34 @@ export function getPermutations<T>(arr: T[]): T[][] {
 export function minMax(a: number, b: number): [number, number] {
     return a < b ? [a, b] : [b, a]
 }
+
+/**
+ * Generates all unique unordered pairs from an array.
+ *
+ * Each pair consists of two distinct elements where the second element
+ * appears later in the array than the first. Self-pairs and duplicate
+ * reverse pairs are not produced.
+ *
+ * @template T
+ * @param {T[]} arr
+ *   The source array from which to generate pairs.
+ * @returns {Generator<[T, T]>}
+ *   A generator that yields each unique pair as a tuple.
+ *
+ * @example
+ * ```ts
+ * [...pairs([1, 2, 3])]
+ * // → [[1, 2], [1, 3], [2, 3]]
+ * ```
+ *
+ * @complexity
+ * Time: O(n²)
+ * Space: O(1) excluding consumer storage
+ */
+export function* pairs<T>(arr: T[]): Generator<[T, T]> {
+    for (let i = 0; i < arr.length; i++) {
+        for (let j = i + 1; j < arr.length; j++) {
+            yield [arr[i], arr[j]]
+        }
+    }
+}
