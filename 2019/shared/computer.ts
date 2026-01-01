@@ -29,11 +29,10 @@ export class Computer {
     }
 
     // Run until ew need more input or we halt
-    public run(): void {
+    public run(pauseOnInput = false): void {
         while (!this.halted && !this.waitingForInput) {
             if (this.ip >= this.memory.length) {
-                this.halted = true
-                break
+                throw new Error(`ip out of bounds.`)
             }
 
             const [opcode, m1, m2, m3] = this.decode(this.memory[this.ip])
@@ -84,6 +83,10 @@ export class Computer {
                     const value = this.readParam(p1, m1)
                     this.addOutput(value)
                     this.ip += 2
+
+                    if (pauseOnInput) {
+                        return
+                    }
                     break
                 }
 
@@ -154,6 +157,12 @@ export class Computer {
         }
     }
 
+    public runUntilOutput(): number | null {
+        const before = this.outputs.length
+        this.run(true)
+        return this.outputs.length > before ? this.outputs[this.outputs.length - 1] : null
+    }
+
     // Add output to results
     public addOutput(value: number): void {
         this.outputs.push(value)
@@ -192,6 +201,24 @@ export class Computer {
     public appendInput(...newInputs: number[]) {
         this.inputs.push(...newInputs)
         this.waitingForInput = false
+    }
+
+    public clone(): Computer {
+        const clone = new Computer([])
+        
+        // Copy primitives
+        clone.halted = this.halted
+        clone.waitingForInput = this.waitingForInput
+        clone.ip = this.ip
+        clone.inputIndex = this.inputIndex
+        clone.relativeBase = this.relativeBase
+
+        // Deep copy arrays
+        clone.memory = [...this.memory]
+        clone.inputs = [...this.inputs]
+        clone.outputs = [...this.outputs]
+
+        return clone
     }
 
     // Helper method for decoding

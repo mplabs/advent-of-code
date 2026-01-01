@@ -5,14 +5,38 @@ export class Graph {
         this.neighbors[u] = [...(this.neighbors[u] || []), ...values]
     }
 
-    removeNode(u: string): void {
-        // Remove all references to this node in neighbors
-        for (const key in this.neighbors) {
-            this.neighbors[key] = this.neighbors[key].filter((neighbor) => neighbor !== u)
+    addUndirectedEdge(a: string, b: string) {
+        this.addEdge(a, b)
+        this.addEdge(b, a)
+    }
+
+    /**
+     * maximum shortest-path distance from source to any reachable node
+     */
+    maxDistanceFrom(source: string): number {
+        const queue = [source]
+        const dist = { [source]: 0 }
+        let head = 0
+        let max = 0
+
+        while (head < queue.length) {
+            const u = queue[head++]
+            const d = dist[u]
+            if (d > max) {
+                max = d
+            }
+
+            const nbrs = this.neighbors[u] || []
+            for (const v of nbrs) {
+                if (dist[v] !== undefined) {
+                    continue
+                }
+                dist[v] = d + 1
+                queue.push(v)
+            }
         }
 
-        // Delete the node itself
-        delete this.neighbors[u]
+        return max
     }
 
     shortestPath(source: string, target: string): string[] | null {
@@ -48,5 +72,15 @@ export class Graph {
             }
         }
         return null
+    }
+
+    removeNode(u: string): void {
+        // Remove all references to this node in neighbors
+        for (const key in this.neighbors) {
+            this.neighbors[key] = this.neighbors[key].filter((neighbor) => neighbor !== u)
+        }
+
+        // Delete the node itself
+        delete this.neighbors[u]
     }
 }
